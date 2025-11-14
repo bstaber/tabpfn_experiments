@@ -12,6 +12,9 @@ X_train, y_train = train_data["X"], train_data["y"]
 test_data = np.load("real_world_data/bio/data/bio_test_split_0.npz")
 X_test, y_test = test_data["X"], test_data["y"]
 
+cal_data = np.load("real_world_data/bio/data/bio_cal_split_0.npz")
+X_cal, y_cal = cal_data["X"], cal_data["y"]
+
 # Initialize the regressor
 regressor = TabPFNRegressor().create_default_for_version(ModelVersion.V2)
 regressor.fit(X_train, y_train)
@@ -19,14 +22,35 @@ regressor.fit(X_train, y_train)
 # Predict on the test set
 predictions = regressor.predict(X_test, output_type="main", quantiles=[0.05, 0.95])
 
-q1 = predictions["quantiles"][0]
-q2 = predictions["quantiles"][1]
+q1_test = predictions["quantiles"][0]
+q2_test = predictions["quantiles"][1]
 preds = predictions["mean"]
 
+# Conformalization
+cal_pred = regressor.predict(X_cal, output_type="main", quantiles=[0.05, 0.95])
+q1_cal = cal_pred["quantiles"][0]
+q2_cal = cal_pred["quantiles"][1]
+
+s1 = q1_cal - y_cal.squeeze()
+s2 = y_cal.squeeze() - q2_cal
+scores = np.maximum(s1, s2)
+
+alpha = 0.1
+n = len(X_cal)
+k = int(np.ceil((n + 1) * (1 - alpha)))
+k = min(k, n)
+q_alpha_hat = np.sort(scores)[k - 1]
+
+# Final band
+print(f"q_alpha_hat: {q_alpha_hat}")
+q1 = q1_test - q_alpha_hat
+q2 = q2_test + q_alpha_hat
+
+# Compute metrics
 coverage = (q1 <= y_test.squeeze()) & (y_test.squeeze() <= q2)
 mean_width = np.mean(q2 - q1)
 print(f"Mean width: {mean_width}")
-
+print(f"Maringal coverage: {np.mean(coverage)}")
 
 rc_nclust = 10
 rc_min = 100
@@ -83,7 +107,6 @@ for i in range(10):
 
     mean_wsc = df["wsc"].mean()
     ax.scatter(mean_wsc, 0, marker="s", s=80, color="black", zorder=5)
-
     # Cosmetics
     ax.xaxis.grid(True)
     ax.set(xlabel="Worst-set coverage", ylabel="")
