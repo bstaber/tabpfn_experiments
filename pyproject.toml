@@ -9,8 +9,9 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "datasets>=4.3.0",
-    "pyplaid>=0.1.10",
-    "pyqt5>=5.15.11",
+    "matplotlib>=3.10.7",
+    "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
     "tabpfn>=2.2.1",
 ]
 
