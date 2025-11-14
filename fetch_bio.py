@@ -75,4 +75,4 @@ def main(n_splits, sample_size):
 
 
 if __name__ == "__main__":
-    main(n_splits=1, sample_size=1000)
+    main(n_splits=10, sample_size=1000)
